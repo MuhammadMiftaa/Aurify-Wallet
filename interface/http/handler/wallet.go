@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"refina-wallet/config/log"
+	"refina-wallet/interface/grpc/interceptor"
 	"refina-wallet/internal/service"
 	"refina-wallet/internal/types/dto"
 	"refina-wallet/internal/utils/data"
@@ -81,10 +82,10 @@ func (wallet_handler *walletHandler) GetWalletByID(c *gin.Context) {
 
 func (wallet_handler *walletHandler) GetWalletsByUserID(c *gin.Context) {
 	ctx := c.Request.Context()
-	token := c.GetHeader("Authorization")
+	userID := interceptor.UserIDFromContext(ctx)
 	requestID, _ := c.Get(data.REQUEST_ID_LOCAL_KEY)
 
-	userWallets, err := wallet_handler.walletService.GetWalletsByUserID(ctx, token)
+	userWallets, err := wallet_handler.walletService.GetWalletsByUserID(ctx, userID)
 	if err != nil {
 		log.Error(data.LogGetWalletsByUserIDFailed, map[string]any{
 			"service":    data.WalletService,
@@ -110,10 +111,10 @@ func (wallet_handler *walletHandler) GetWalletsByUserID(c *gin.Context) {
 
 func (wallet_handler *walletHandler) GetWalletsByUserIDGroupByType(c *gin.Context) {
 	ctx := c.Request.Context()
-	token := c.GetHeader("Authorization")
+	userID := interceptor.UserIDFromContext(ctx)
 	requestID, _ := c.Get(data.REQUEST_ID_LOCAL_KEY)
 
-	userWallets, err := wallet_handler.walletService.GetWalletsByUserIDGroupByType(ctx, token)
+	userWallets, err := wallet_handler.walletService.GetWalletsByUserIDGroupByType(ctx, userID)
 	if err != nil {
 		log.Error(data.LogGetWalletsByUserIDGroupTypeFailed, map[string]any{
 			"service":    data.WalletService,
@@ -139,7 +140,7 @@ func (wallet_handler *walletHandler) GetWalletsByUserIDGroupByType(c *gin.Contex
 
 func (wallet_handler *walletHandler) CreateWallet(c *gin.Context) {
 	ctx := c.Request.Context()
-	token := c.GetHeader("Authorization")
+	userID := interceptor.UserIDFromContext(ctx)
 	requestID, _ := c.Get(data.REQUEST_ID_LOCAL_KEY)
 
 	var walletRequest dto.WalletsRequest
@@ -157,7 +158,7 @@ func (wallet_handler *walletHandler) CreateWallet(c *gin.Context) {
 		return
 	}
 
-	wallet, err := wallet_handler.walletService.CreateWallet(ctx, token, walletRequest)
+	wallet, err := wallet_handler.walletService.CreateWallet(ctx, userID, walletRequest)
 	if err != nil {
 		log.Error(data.LogCreateWalletFailed, map[string]any{
 			"service":        data.WalletService,
@@ -274,8 +275,7 @@ func mapServiceError(err error) (int, string) {
 	switch {
 	case strings.Contains(msg, "not found"):
 		return http.StatusNotFound, "resource not found"
-	case strings.Contains(msg, "invalid token"),
-		strings.Contains(msg, "invalid user id"),
+	case strings.Contains(msg, "invalid user id"),
 		strings.Contains(msg, "invalid wallet type id"):
 		return http.StatusBadRequest, "invalid request"
 	case strings.Contains(msg, "balance must be zero"):

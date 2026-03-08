@@ -23,9 +23,9 @@ import (
 type WalletsService interface {
 	GetAllWallets(ctx context.Context) ([]dto.WalletsResponse, error)
 	GetWalletByID(ctx context.Context, id string) (dto.WalletsResponse, error)
-	GetWalletsByUserID(ctx context.Context, token string) ([]dto.WalletsResponse, error)
-	GetWalletsByUserIDGroupByType(ctx context.Context, token string) ([]view.ViewUserWalletsGroupByType, error)
-	CreateWallet(ctx context.Context, token string, wallet dto.WalletsRequest) (dto.WalletsResponse, error)
+	GetWalletsByUserID(ctx context.Context, userID string) ([]dto.WalletsResponse, error)
+	GetWalletsByUserIDGroupByType(ctx context.Context, userID string) ([]view.ViewUserWalletsGroupByType, error)
+	CreateWallet(ctx context.Context, userID string, wallet dto.WalletsRequest) (dto.WalletsResponse, error)
 	CreateWalletGRPC(ctx context.Context, wallet dto.WalletsRequest) (dto.WalletsResponse, error)
 	UpdateWallet(ctx context.Context, id string, wallet dto.WalletsRequest) (dto.WalletsResponse, error)
 	DeleteWallet(ctx context.Context, id string) (dto.WalletsResponse, error)
@@ -84,15 +84,10 @@ func (wallet_serv *walletsService) GetWalletByID(ctx context.Context, id string)
 	return walletResponse, nil
 }
 
-func (wallet_serv *walletsService) GetWalletsByUserID(ctx context.Context, token string) ([]dto.WalletsResponse, error) {
-	userData, err := utils.VerifyToken(token[7:])
+func (wallet_serv *walletsService) GetWalletsByUserID(ctx context.Context, userID string) ([]dto.WalletsResponse, error) {
+	wallets, err := wallet_serv.walletsRepository.GetWalletsByUserID(ctx, nil, userID)
 	if err != nil {
-		return nil, fmt.Errorf("invalid token: %w", err)
-	}
-
-	wallets, err := wallet_serv.walletsRepository.GetWalletsByUserID(ctx, nil, userData.ID)
-	if err != nil {
-		return nil, fmt.Errorf("get wallets by user [id=%s]: %w", userData.ID, err)
+		return nil, fmt.Errorf("get wallets by user [id=%s]: %w", userID, err)
 	}
 
 	var walletsResponse []dto.WalletsResponse
@@ -104,13 +99,8 @@ func (wallet_serv *walletsService) GetWalletsByUserID(ctx context.Context, token
 	return walletsResponse, nil
 }
 
-func (wallet_serv *walletsService) GetWalletsByUserIDGroupByType(ctx context.Context, token string) ([]view.ViewUserWalletsGroupByType, error) {
-	userData, err := utils.VerifyToken(token[7:])
-	if err != nil {
-		return nil, fmt.Errorf("invalid token: %w", err)
-	}
-
-	wallets, err := wallet_serv.walletsRepository.GetWalletsByUserIDGroupByType(ctx, nil, userData.ID)
+func (wallet_serv *walletsService) GetWalletsByUserIDGroupByType(ctx context.Context, userID string) ([]view.ViewUserWalletsGroupByType, error) {
+	wallets, err := wallet_serv.walletsRepository.GetWalletsByUserIDGroupByType(ctx, nil, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -118,13 +108,8 @@ func (wallet_serv *walletsService) GetWalletsByUserIDGroupByType(ctx context.Con
 	return wallets, err
 }
 
-func (wallet_serv *walletsService) CreateWallet(ctx context.Context, token string, wallet dto.WalletsRequest) (dto.WalletsResponse, error) {
-	userData, err := utils.VerifyToken(token[7:])
-	if err != nil {
-		return dto.WalletsResponse{}, fmt.Errorf("invalid token: %w", err)
-	}
-
-	UserID, err := utils.ParseUUID(userData.ID)
+func (wallet_serv *walletsService) CreateWallet(ctx context.Context, userID string, wallet dto.WalletsRequest) (dto.WalletsResponse, error) {
+	UserID, err := utils.ParseUUID(userID)
 	if err != nil {
 		return dto.WalletsResponse{}, fmt.Errorf("invalid user id: %w", err)
 	}
