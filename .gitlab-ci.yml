@@ -33,7 +33,7 @@ build_refina_wallet:
   stage: build
   image: docker:latest
   needs:
-    - job: sonarcloud-check 
+    - job: sonarcloud_check 
   services:
     - docker:dind
   rules:
@@ -53,7 +53,7 @@ build_migrate:
   stage: build
   image: docker:latest
   needs:
-    - job: sonarcloud-check 
+    - job: sonarcloud_check 
   services:
     - docker:dind
   rules:
