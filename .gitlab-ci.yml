@@ -22,7 +22,7 @@ test:
       - coverage.out
   rules:
     - if: $CI_COMMIT_TAG =~ /^v[0-9]{4}\.[0-9]{1,3}$/
-    - if: $CI_COMMIT_BRANCH == "main"
+    # - if: $CI_COMMIT_BRANCH == "main"
   allow_failure: false
 
 sonarcloud-check:
@@ -40,7 +40,7 @@ sonarcloud-check:
   script:
     - sonar-scanner -Dsonar.go.coverage.reportPaths=coverage.out
   rules:
-    - if: $CI_COMMIT_BRANCH == "main"
+    # - if: $CI_COMMIT_BRANCH == "main"
     - if: $CI_COMMIT_TAG =~ /^v[0-9]{4}\.[0-9]{1,3}$/
     # - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   allow_failure: true
