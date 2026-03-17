@@ -91,4 +91,21 @@ const (
 	LogUpdateWalletTypeBadRequest = "update_wallet_type_bad_request"
 	LogUpdateWalletTypeFailed     = "update_wallet_type_failed"
 	LogDeleteWalletTypeFailed     = "delete_wallet_type_failed"
+
+	// --- admin consumer ---
+	AdminConsumerService      = "admin_consumer"
+	LogAdminConsumerStarted   = "admin_consumer_started"
+	LogAdminConsumerStopped   = "admin_consumer_stopped"
+	LogAdminConsumerFailed    = "admin_consumer_failed"
+	LogAdminEventHandleFailed = "admin_event_handle_failed"
+	LogAdminEventUnknown      = "admin_event_unknown_action"
+	LogAdminWalletTypeCreated = "admin_wallet_type_created"
+	LogAdminWalletTypeUpdated = "admin_wallet_type_updated"
+	LogAdminWalletTypeDeleted = "admin_wallet_type_deleted"
+
+	// --- gRPC server (admin master data) ---
+	LogListWalletTypesSuccess     = "list_wallet_types_success"
+	LogListWalletTypesFailed      = "list_wallet_types_failed"
+	LogGetWalletTypeDetailSuccess = "get_wallet_type_detail_success"
+	LogGetWalletTypeDetailFailed  = "get_wallet_type_detail_failed"
 )

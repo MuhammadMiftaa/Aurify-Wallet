@@ -16,6 +16,7 @@ import (
 	grpcserver "refina-wallet/interface/grpc/server"
 	"refina-wallet/interface/http/router"
 	"refina-wallet/interface/queue"
+	"refina-wallet/interface/queue/consumer"
 	"refina-wallet/internal/repository"
 	"refina-wallet/internal/service"
 	"refina-wallet/internal/utils"
@@ -70,6 +71,14 @@ func main() {
 	// Start cleanup job (optional)
 	go outboxPublisher.StartCleanupJob(ctx)
 	logger.Info(data.LogOutboxPublisherStarted, map[string]any{"service": data.OutboxService, "duration": utils.Ms(time.Since(startTime))})
+
+	// Setup Admin Event Consumer
+	startTime = time.Now()
+	walletTypesRepo := repository.NewWalletTypesRepository(dbInstance.GetDB())
+	walletTypesService := service.NewWalletTypesService(repository.NewTxManager(dbInstance.GetDB()), walletTypesRepo)
+	adminConsumer := consumer.NewAdminEventConsumer(queueInstance, walletTypesService)
+	go adminConsumer.Start(ctx)
+	logger.Info(data.LogAdminConsumerStarted, map[string]any{"service": data.AdminConsumerService, "duration": utils.Ms(time.Since(startTime))})
 
 	// Set up the gRPC client
 	startTime = time.Now()

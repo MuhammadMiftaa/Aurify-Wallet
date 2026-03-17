@@ -3,6 +3,8 @@ package server
 import (
 	"context"
 	"fmt"
+	"sort"
+	"strings"
 	"time"
 
 	"refina-wallet/config/log"
@@ -309,4 +311,148 @@ func (s *walletServer) GetWalletSummary(ctx context.Context, req *wpb.UserID) (*
 		TotalBalance:      totalBalance,
 		TotalTransactions: totalTransactions,
 	}, nil
+}
+
+// ── ListWalletTypes (admin paginated) ──
+
+func (s *walletServer) ListWalletTypes(ctx context.Context, req *wpb.ListWalletTypesRequest) (*wpb.ListWalletTypesResponse, error) {
+	page := int(req.GetPage())
+	if page < 1 {
+		page = 1
+	}
+	pageSize := int(req.GetPageSize())
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	sortBy := req.GetSortBy()
+	if sortBy == "" {
+		sortBy = "created_at"
+	}
+	sortOrder := req.GetSortOrder()
+	if sortOrder == "" {
+		sortOrder = "desc"
+	}
+	search := req.GetSearch()
+
+	allTypes, err := s.walletTypesService.GetAllWalletTypes(ctx)
+	if err != nil {
+		log.Error(data.LogListWalletTypesFailed, map[string]any{
+			"service": data.GRPCServerService,
+			"error":   err.Error(),
+		})
+		return nil, fmt.Errorf("list wallet types: %w", err)
+	}
+
+	// Filter by search
+	var filtered []dto.WalletTypesResponse
+	if search != "" {
+		for _, wt := range allTypes {
+			if containsIgnoreCase(wt.Name, search) || containsIgnoreCase(string(wt.Type), search) || containsIgnoreCase(wt.Description, search) {
+				filtered = append(filtered, wt)
+			}
+		}
+	} else {
+		filtered = allTypes
+	}
+
+	total := int32(len(filtered))
+	totalPages := total / int32(pageSize)
+	if total%int32(pageSize) != 0 {
+		totalPages++
+	}
+
+	// Sort
+	sortWalletTypes(filtered, sortBy, sortOrder)
+
+	// Paginate
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if start > len(filtered) {
+		start = len(filtered)
+	}
+	if end > len(filtered) {
+		end = len(filtered)
+	}
+	paged := filtered[start:end]
+
+	var protoTypes []*wpb.WalletTypeDetail
+	for _, wt := range paged {
+		protoTypes = append(protoTypes, &wpb.WalletTypeDetail{
+			Id:          wt.ID,
+			Name:        wt.Name,
+			Type:        string(wt.Type),
+			Description: wt.Description,
+		})
+	}
+
+	log.Info(data.LogListWalletTypesSuccess, map[string]any{
+		"service": data.GRPCServerService,
+		"total":   total,
+		"page":    page,
+	})
+
+	return &wpb.ListWalletTypesResponse{
+		WalletTypes: protoTypes,
+		Total:       total,
+		Page:        int32(page),
+		PageSize:    int32(pageSize),
+		TotalPages:  totalPages,
+	}, nil
+}
+
+// ── GetWalletTypeDetail ──
+
+func (s *walletServer) GetWalletTypeDetail(ctx context.Context, req *wpb.WalletTypeID) (*wpb.WalletTypeDetail, error) {
+	id := req.GetId()
+
+	wt, err := s.walletTypesService.GetWalletTypeByID(ctx, id)
+	if err != nil {
+		log.Error(data.LogGetWalletTypeDetailFailed, map[string]any{
+			"service":        data.GRPCServerService,
+			"wallet_type_id": id,
+			"error":          err.Error(),
+		})
+		return nil, fmt.Errorf("get wallet type detail [id=%s]: %w", id, err)
+	}
+
+	log.Info(data.LogGetWalletTypeDetailSuccess, map[string]any{
+		"service":        data.GRPCServerService,
+		"wallet_type_id": id,
+	})
+
+	return &wpb.WalletTypeDetail{
+		Id:          wt.ID,
+		Name:        wt.Name,
+		Type:        string(wt.Type),
+		Description: wt.Description,
+	}, nil
+}
+
+// ── Helpers ──
+
+func containsIgnoreCase(s, substr string) bool {
+	return len(s) >= len(substr) && (s == substr || len(substr) == 0 ||
+		(func() bool {
+			sl := strings.ToLower(s)
+			sub := strings.ToLower(substr)
+			return strings.Contains(sl, sub)
+		})())
+}
+
+func sortWalletTypes(types []dto.WalletTypesResponse, sortBy, sortOrder string) {
+	sort.Slice(types, func(i, j int) bool {
+		var cmp bool
+		switch sortBy {
+		case "name":
+			cmp = strings.ToLower(types[i].Name) < strings.ToLower(types[j].Name)
+		case "type":
+			cmp = string(types[i].Type) < string(types[j].Type)
+		default: // created_at, id
+			cmp = types[i].ID < types[j].ID
+		}
+		if sortOrder == "desc" {
+			return !cmp
+		}
+		return cmp
+	})
 }

@@ -15,6 +15,11 @@ var (
 	OUTBOX_EVENT_WALLET_UPDATED = "wallet.updated"
 	OUTBOX_EVENT_WALLET_DELETED = "wallet.deleted"
 
+	// Admin exchange and routing keys
+	ADMIN_EXCHANGE    = "refina_admin"
+	ADMIN_QUEUE       = "refina-admin-wallet-types"
+	ADMIN_ROUTING_KEY = "master.wallet_types"
+
 	INITIAL_DEPOSIT_CATEGORY_ID = "00000000-0000-0000-0000-000000000000"
 	INITIAL_DEPOSIT_DESC        = "Deposit awal"
 
